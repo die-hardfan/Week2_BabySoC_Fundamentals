@@ -100,8 +100,13 @@ An SoC integrates all of them into a chip with additional functional units for a
 
 <details>
   <summary> References </summary>
-Github repo 
-website
-paper (add links at the end)
+
+Reference for SoC fundamentals:
+- [Github repo](https://github.com/hemanthkumardm/SFAL-VSD-SoC-Journey/tree/main/11.%20Fundamentals%20of%20SoC%20Design)
+- [Website](https://www.ansys.com/blog/what-is-system-on-a-chip)
+- [IEEE Tutorial Paper](https://www.scribd.com/document/725357175/systemonchip-design)
+  
+Reference for VSDBabySoC:
+- [Github repo](https://github.com/manili/VSDBabySoC/tree/main)
 </details>
 
