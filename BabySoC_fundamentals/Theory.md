@@ -82,6 +82,7 @@ An SoC integrates all of them into a chip with additional functional units for a
 
 ## What is VSDBabySoC? 
 VSDBabySoC is an open-source SoC that integrates 3 components: a 5-stage pipelined RISC-V processor, a Phase Locked Loop (PLL), and a Digital to Analog Converter (DAC). It was delivered by a VSD-HDP intern and is completely open-source. The goal is to test 3 open-source IPs and calibrate the analog components. 
+//add image of the soc here
 
 <details>
   <summary> Components of VSD BabySoC </summary>
