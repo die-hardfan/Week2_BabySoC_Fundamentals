@@ -1,6 +1,6 @@
 # System on Chip (SoC) Fundamentals
 
-An overview of SoC design flow was seen in Week0. This will explore the theoretical concepts behind SoC and it's components.
+An overview of SoC design flow was seen in Week0. This will explore the theoretical concepts behind SoC, its components, and its pros and cons.
 
 <details>
   <summary> What is a System-on-Chip (SoC)? </summary>
@@ -80,9 +80,8 @@ An SoC integrates all of them into a chip with additional functional units for a
 
 # BabySoC Fundamentals
 
-<details>
-  <summary> What is VSD BabySoC? </summary>
-</details>
+## What is VSDBabySoC? 
+VSDBabySoC is an open-source SoC that integrates 3 components: a 5-stage pipelined RISC-V processor, a Phase Locked Loop (PLL), and a Digital to Analog Converter (DAC). It was delivered by a VSD-HDP intern and is completely open-source. The goal is to test 3 open-source IPs and calibrate the analog components. 
 
 <details>
   <summary> Components of VSD BabySoC </summary>
