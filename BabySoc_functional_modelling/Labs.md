@@ -115,9 +115,103 @@ ENb_CP: Enable/disable for the charge pump. Currently unused.
 ENb_VCO: Enable for the VCO. Controls whether the output CLK toggles or is held low.
 REF: Reference clock input. The PLL locks to this clock
 
+The module starts with CLK = 0 and period = 25 ns (40 MHz).
+If ENb_VCO = 1, the CLK toggles every period/2 ns.
+Each time the reference clock REF has a rising edge:
+Calculate the reference period.
+Adjust the VCO period to 1/8 of the reference clock period.
+This simulates a frequency-multiplying PLL with VCO locking to a reference.
+
+Important: This is behavioral code for simulation, not synthesizable RTL. The #(delay) and real types are purely for timing simulation.
+
 <details>
   <summary> Detailed Explanation </summary>
-  
+
+Real Variables
+real period, lastedge, refpd;
+
+
+period: The current period of the output CLK in nanoseconds. Used for timing delays.
+
+lastedge: Stores the time of the last rising edge of REF.
+
+refpd: The reference clock period (time between two REF rising edges).
+
+Note: real type is used for simulation with time delays in #(...) constructs. Cannot be synthesized to hardware—this is behavioral/testbench code, not RTL for an FPGA/ASIC.
+
+Initial Block
+initial begin
+   lastedge = 0.0;
+   period = 25.0; // 25ns period = 40MHz
+   CLK <= 0;
+end
+
+
+lastedge = 0.0; → Initialize the last REF edge timestamp.
+
+period = 25.0 → Default VCO period is 25ns, i.e., 40 MHz frequency.
+
+CLK <= 0; → Initialize the output clock to 0.
+
+This sets the starting conditions of the PLL simulation.
+
+Clock Toggling (VCO Behavior)
+always @(CLK or ENb_VCO) begin
+   if (ENb_VCO == 1'b1) begin
+      #(period / 2.0);
+      CLK <= (CLK === 1'b0);
+   end
+   else if (ENb_VCO == 1'b0) begin
+      CLK <= 1'b0;
+   end 
+   else begin
+      CLK <= 1'bx;
+   end
+end
+
+
+This always block toggles the CLK output to simulate the VCO.
+
+ENb_VCO == 1 → VCO enabled, clock toggles at period/2 delay.
+
+#(period / 2.0); → Wait half a period before toggling the clock.
+
+CLK <= (CLK === 1'b0); → If CLK was 0, set to 1; else set to 0 (toggles).
+
+ENb_VCO == 0 → VCO disabled, hold CLK at 0.
+
+else → If ENb_VCO is unknown (x), CLK is set to unknown 1'bx.
+
+Essentially, this simulates a free-running oscillator controlled by ENb_VCO and the current period.
+
+Reference Clock Edge Processing
+always @(posedge REF) begin
+   if (lastedge > 0.0) begin
+      refpd = $realtime - lastedge;
+      // Adjust period towards 1/8 the reference period
+      //period = (0.99 * period) + (0.01 * (refpd / 8.0));
+      period =  (refpd / 8.0) ;
+   end
+   lastedge = $realtime;
+end
+
+
+This block adjusts the VCO period based on the reference clock, simulating phase-locking behavior.
+
+@(posedge REF) → Triggered on each rising edge of REF.
+
+if (lastedge > 0.0) → Skip the first edge because there’s no previous timestamp yet.
+
+refpd = $realtime - lastedge; → Calculate the period of the reference clock. $realtime gives the simulation time in ns.
+
+period = (refpd / 8.0); → Sets the VCO period to 1/8th of the reference period, i.e., this PLL multiplies the reference frequency by 8.
+
+The commented line //period = (0.99 * period) + (0.01 * (refpd / 8.0)); would have been a smoother approach (exponential averaging) to prevent abrupt frequency jumps.
+
+lastedge = $realtime; → Update timestamp for next edge calculation.
+
+This is the core PLL “locking” mechanism: it adjusts the output clock period to match a multiple of the reference clock.
+
 </details>
 
 ---
@@ -304,6 +398,36 @@ Iverilog only compiles the Verilog files into a simulation executable (.out).
 
 ## Simulation Results
 
+### The code executed
+
+```
+    ADDI   r9,  r0, 1         # r9 = 1
+    ADDI   r10, r0, 43        # r10 = 43 (upper bound for triangular numbers)
+    ADDI   r11, r0, 0         # r11 = 0 (loop counter)
+    ADDI   r17, r0, 0         # r17 = 0 (accumulator)
+
+# ---- First loop: build triangular numbers ----
+loop1:
+    ADD    r17, r17, r11      # r17 = r17 + r11
+    ADDI   r11, r11, 1        # r11 = r11 + 1
+    BNE    r11, r10, loop1    # repeat until r11 == r10
+    ADD    r17, r17, r11      # final add when r11 == r10
+
+# ---- Second loop: subtract triangular numbers ----
+loop2:
+    SUB    r17, r17, r11      # r17 = r17 - r11
+    SUB    r11, r11, r9       # r11 = r11 - 1
+    BNE    r11, r9, loop2     # repeat until r11 == 1
+    SUB    r17, r17, r11      # final subtract when r11 == 1
+
+# ---- Infinite loop (end) ----
+loop3:
+    BEQ    r0, r0, loop3      # stay here forever
+
+```
+The output pattern goes like 0, 1, 3, 6, 10, 15, .. till 946 then decreases like 903, ..., 1, 0. That's how the analog waveform comes to be.
+//simulation waveform
+
 <details>
   <summary>Reset operation</summary>
   //add images here
@@ -313,7 +437,47 @@ Perhaps, all register files are initialised to their number when reset, hence th
 
 <details>
   <summary>Clocking</summary>
+   
   //add images here
+This is a close-up of the initial simulation time. Clearly, it begins with a period of 25ns, but then increases to 35ns when the reference clock edge arrives.
+In short: 
+   The output is 25 ns initially because that’s just the default free-running frequency of the VCO (hardcoded in the initial block). Once REF comes in, the code updates the period to match REF/8 (≈35 ns in your case).
+
+   <details>
+      <summary>Detailed Explanation </summary>
+      
+   1. Why is it 25 ns initially?
+   In the code:
+   ```
+   initial begin
+      lastedge = 0.0;
+      period   = 25.0; // default 25ns
+      CLK <= 0;
+   end
+   ```
+   At time 0, the model doesn’t yet know the REF frequency (refpd hasn’t been measured because no REF edge has occurred).
+   So it just assumes a default VCO period = 25 ns (40 MHz).
+   That’s why you see CLK toggling very fast at the beginning, even though REF is much slower.
+   
+   2. When REF edges arrive
+   ```
+   always @(posedge REF) begin
+      if (lastedge > 0.0) begin
+         refpd = $realtime - lastedge;
+         period = refpd / 8.0;
+      end
+      lastedge = $realtime;
+   end
+   ```
+   On the first REF rising edge, it calculates the reference period (refpd).
+   
+   Example from the waveform:
+   refpd ≈ 283 ns.
+   period = refpd / 8 ≈ 35.4 ns.
+   So, after the first REF cycle, the VCO clock slows down from 25 ns (40 MHz) to ~35 ns (≈28.3 MHz), which is exactly 8× the REF frequency.
+   
+   </details>
+
 </details>
 
 <details>
