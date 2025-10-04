@@ -86,14 +86,113 @@ VSDBabySoC is an open-source SoC that integrates 3 components: a 5-stage pipelin
 
 <details>
   <summary> Components of VSD BabySoC </summary>
+It contains 3 major components, the RISC-V processor, the PLL and the 10 bit DAC. 
+
+### 1. RISC-V PROCESSOR
+This is made at the RISC-V workshop RVMYTH, which uses TL-Verilog to code a 5 stage pipelined RISC-V processor. This is like the data-processing unit (with memory) of the SoC.
+**WORKING**
+
+### 2. PLL (Phase Locked Loop)
+This is responsible for generating the stable clock signals required for the functioning of the processor and the DAC. This is like the necessary analog component within a SoC. 
+**WORKING**
+A **PLL** is a circuit that generates a stable output signal whose **frequency and phase are locked** to a reference signal.
+
+//add image here
+
+1. **Reference signal:** The PLL compares its output to a reference clock.  
+2. **Phase detector:** Measures the difference in phase between the output and reference.  
+3. **Loop filter:** Smooths the phase difference into a control voltage.  
+4. **Voltage-Controlled Oscillator (VCO):** Adjusts its frequency based on the control voltage.  
+
+> The loop continually adjusts the VCO so that its output matches the reference signal in frequency and phase.
+> Used to **generate clocks**, **multiply/divide frequencies**, and **synchronize signals**.  
+> Works like a **self-correcting oscillator** that “locks on” to a reference.
+
+```
+module avsdpll (
+   output reg  CLK,        // Output clock of the PLL
+   input  wire VCO_IN,     // Input from VCO (not really used in this sim)
+   input  wire ENb_CP,     // Charge pump enable (not used here)
+   input  wire ENb_VCO,    // VCO enable (active-low)
+   input  wire REF         // Reference given as real value
+);
+```
+
+
+### 3. DAC (Digital to Analog Converter)
+This is responsible for interfacing the BabySoC with other analog components if necessary. It takes the data stored in register `r17` (within the processor) and converts it into its analog value. This is like the peripheral for the SoC.
+**WORKING**
+The purpose of DAC is to convert digital data into desired analog form (voltage or current). This is done in various ways as given below. And the verilog models a 10-bit Voltage-Output DAC. 
+```
+   output      OUT;
+   input [9:0] D;
+   input       VREFH;
+   input       VREFL;
+```
+The module converts the 10 bit `D` to an appropriate voltage value between `VREFH` and `VREFL`. 
+//add an image here
+  <details>
+    <summary> Types of DACs</summary>
+    
+  ### 1. Voltage-Output DAC (VOUT DAC)
+  A voltage-output DAC produces an analog voltage proportional to the digital input code.
+  The output voltage typically follows the relationship:
+  V<sub>OUT</sub> = V<sub>REFL</sub> + (<sup>D</sup>&frasl;<sub>2<sup>N</sup> − 1</sub>) × (V<sub>REFH</sub> − V<sub>REFL</sub>)
+  
+  ### 2. Current-Output DAC (IOUT DAC)
+  A current-output DAC generates an analog current rather than voltage:
+   I<sub>OUT</sub> = (<sup>D</sup>&frasl;<sub>2<sup>N</sup> − 1</sub>) × I<sub>REF</sub>
+  
+  ### 3. Segmented DACs (Advanced Type)
+  Split the input code into two segments:
+    - MSB section: thermometer-coded (each unit source adds the same amount). Avoids large step errors; improves monotonicity and linearity.
+    - LSB section: binary-weighted (smaller contribution). Reduces area and complexity.
+  </details>
 </details>
 
 <details>
   <summary> Why BabySoC is a simplified model for learning SoC concepts </summary>
+From the Components of SoC section, we know the main components of SoC are the processor, memory, peripherals, and necessary analog components. BabySoC has the spec that can meet the bare minimum qualifications of an SoC. It has a processor (very basic RISC-V core that follows RV32I), memory (data mem, instr mem, and reg file as part of the processor pipeline), a DAC as a peripheral, and a PLL as the necessary analog component. This is clearly as simple as an SoC can get, with all the essential components present. Thus, before moving on to actual SoC design, studying BabySoC thoroughly will build up on the most essential concepts required, like modelling analog components and their calibration etc.  
+  
 </details>
 
 <details>
   <summary> The role of functional modelling before RTL and physical design stages </summary>
+
+  <details>
+    <summary> Detailed perspective</summary>
+    
+  ### what is functional modelling?
+  An SoC is a mixed-signal system with digital and analog components. The development of digital and analog is fairly different. But when simulating SoC as a whole to check for functional correctness, analog (or other components like DAC, ADC) are modelled using Verilog. The purpose is to check the functional integrity of the system as a whole.
+  Initially, even digital components are modelled using languages more abstract than Verilog, perhaps C/C++ or even TL-Verilog. 
+  
+  ### Role of functional modelling
+    
+  Most designs, digital or otherwise, require multiple iterations of testing and modifications. In describing the behaviour of the module (as opposed to its actual implementation in hardware), the time required to design, modify, and test (iteration time) reduces drastically. Once the most optimized form is ready at this level of abstraction, lower-level implementation starts, and any required optimizations (which are kept to a minimum because the iteration time increases as more details are included). 
+  Behavioural code describes the function of the module on a simulation level.
+  RTL code describes the implementation of the module on a circuit/hardware level (in the form of logic gates/standard cells).
+  Layout (physical design) describes the module at the device level on the silicon itself (in the form of masks needed for fabrication).
+  More details --> more design time (mainly cuz of the computation involved) --> increased time to market and decreased productivity. Functional modelling enables easier and faster design iterations. 
+  
+  >Functional modeling is a simulation-focused way of describing a circuit.
+  >It describes what the circuit does, not how it is physically implemented in gates or transistors.
+  >Focus is on behavior and correctness, not timing or synthesizability.
+  >Often uses non-synthesizable constructs (like delays, real variables, system functions, etc)
+  </details>
+
+### In short
+**Functional modeling** is a simulation-focused way of describing a circuit. It focuses on **what the circuit does**, not how it is physically implemented in gates or transistors. The emphasis is on **behavior and correctness**, not timing or synthesizability.
+
+An SoC is a mixed-signal system with both digital and analog components. When simulating the whole SoC for functional correctness, analog or mixed-signal IPs (like DACs, ADCs, or PLLs) are often modeled in Verilog using behavioral constructs. Initially, even digital blocks may be described at higher levels of abstraction using languages such as C/C++ or TL-Verilog.
+
+- **Faster iteration:** By describing only the behavior of modules, functional models allow designers to **test, modify, and verify system behavior quickly**, reducing design time and cost.  
+- **Early verification:** Enables **system-level testing, software-hardware co-simulation, and integration of multiple IP blocks** before RTL is available.  
+- **Support for mixed-signal components:** Analog and mixed-signal IPs can be simulated using `real` variables, delays, or system functions, which are generally **non-synthesizable**.  
+- **Abstraction trade-off:** Higher abstraction in functional models → **faster simulation, easier debugging**, but less detail. RTL and physical design introduce more detail, increasing iteration time and computational requirements.  
+- **Foundation for RTL and physical design:** Once functional behavior is validated, designers move to **RTL implementation** (synthesizable, gate-level) and **physical layout** (device-level, silicon masks), minimizing the risk of propagating errors downstream.
+
+> Functional modeling reduces iteration time, enables early system-level verification, and provides a clear behavioral foundation before committing to RTL and physical design.
+
 </details>
 
 ---
