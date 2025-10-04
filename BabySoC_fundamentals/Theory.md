@@ -4,7 +4,8 @@ An overview of SoC design flow was seen in Week0. This will explore the theoreti
 
 <details>
   <summary> What is a System-on-Chip (SoC)? </summary>
-//add an image here
+  
+![IC vs SoC](/images/icvssoc.png)
 **A system-on-chip is an integrated circuit that integrates all of a system’s required components onto a single piece of silicon.**
 
 ## Evolution of ICs into SoC
@@ -51,7 +52,7 @@ Typically, we want: "more performance, less power, less area", and SoCs manage t
 <details>
   <summary> Components of a typical SoC </summary>
 
-  //add an image here
+![SoC components](/images/soc_components.png)
   
 A typical computing system has a programmable processor, on-chip memory, peripherals (for interfacing with the outside world), and necessary analog components (e.g., oscillators for clock generation). 
 An SoC integrates all of them into a chip with additional functional units for accelerating specific tasks. 
@@ -81,8 +82,9 @@ An SoC integrates all of them into a chip with additional functional units for a
 # BabySoC Fundamentals
 
 ## What is VSDBabySoC? 
-VSDBabySoC is an open-source SoC that integrates 3 components: a 5-stage pipelined RISC-V processor, a Phase Locked Loop (PLL), and a Digital to Analog Converter (DAC). It was delivered by a VSD-HDP intern and is completely open-source. The goal is to test 3 open-source IPs and calibrate the analog components. 
-//add image of the soc here
+VSDBabySoC is an open-source SoC that integrates 3 components: a 5-stage pipelined RISC-V processor, a Phase Locked Loop (PLL), and a Digital to Analog Converter (DAC). A VSD-HDP intern delivered it and is completely open-source. The goal is to test 3 open-source IPs and calibrate the analog components. 
+
+![VSDBabySoC](/images/babysoc.png)
 
 <details>
   <summary> Components of VSD BabySoC </summary>
@@ -90,14 +92,17 @@ It contains 3 major components, the RISC-V processor, the PLL and the 10 bit DAC
 
 ### 1. RISC-V PROCESSOR
 This is made at the RISC-V workshop RVMYTH, which uses TL-Verilog to code a 5 stage pipelined RISC-V processor. This is like the data-processing unit (with memory) of the SoC.
+
 **WORKING**
 
 ### 2. PLL (Phase Locked Loop)
 This is responsible for generating the stable clock signals required for the functioning of the processor and the DAC. This is like the necessary analog component within a SoC. 
+
 **WORKING**
+
 A **PLL** is a circuit that generates a stable output signal whose **frequency and phase are locked** to a reference signal.
 
-//add image here
+![PLL](/images/pll.png)
 
 1. **Reference signal:** The PLL compares its output to a reference clock.  
 2. **Phase detector:** Measures the difference in phase between the output and reference.  
@@ -121,7 +126,9 @@ module avsdpll (
 
 ### 3. DAC (Digital to Analog Converter)
 This is responsible for interfacing the BabySoC with other analog components if necessary. It takes the data stored in register `r17` (within the processor) and converts it into its analog value. This is like the peripheral for the SoC.
+
 **WORKING**
+
 The purpose of DAC is to convert digital data into desired analog form (voltage or current). This is done in various ways as given below. And the verilog models a 10-bit Voltage-Output DAC. 
 ```
    output      OUT;
@@ -130,7 +137,9 @@ The purpose of DAC is to convert digital data into desired analog form (voltage 
    input       VREFL;
 ```
 The module converts the 10 bit `D` to an appropriate voltage value between `VREFH` and `VREFL`. 
-//add an image here
+
+![dac](/images/dac.png)
+
   <details>
     <summary> Types of DACs</summary>
     
