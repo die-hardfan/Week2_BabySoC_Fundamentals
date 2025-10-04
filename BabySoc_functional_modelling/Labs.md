@@ -393,7 +393,13 @@ Iverilog only compiles the Verilog files into a simulation executable (.out).
 
 <details>
   <summary>Simulation Logs</summary>
-  //add images here
+
+![](/images/simlog1.png)
+
+![](/images/simlog2.png)
+
+![](/images/simlog3.png)
+   
 </details>
 
 ## Simulation Results
@@ -426,11 +432,16 @@ loop3:
 
 ```
 The output pattern goes like 0, 1, 3, 6, 10, 15, .. till 946 then decreases like 903, ..., 1, 0. That's how the analog waveform comes to be.
-//simulation waveform
+
+![](/images/codeworks.png)
+
+![](/images/analog.png)
 
 <details>
   <summary>Reset operation</summary>
-  //add images here
+   
+![](/images/reset.png)
+
 Perhaps, all register files are initialised to their number when reset, hence the number 17 as the output. 
 
 </details>
@@ -438,13 +449,14 @@ Perhaps, all register files are initialised to their number when reset, hence th
 <details>
   <summary>Clocking</summary>
    
-  //add images here
+![](/images/pll.png)
+
 This is a close-up of the initial simulation time. Clearly, it begins with a period of 25ns, but then increases to 35ns when the reference clock edge arrives.
 In short: 
    The output is 25 ns initially because that’s just the default free-running frequency of the VCO (hardcoded in the initial block). Once REF comes in, the code updates the period to match REF/8 (≈35 ns in your case).
 
    <details>
-      <summary>Detailed Explanation </summary>
+      <summary>why period increases eventually? </summary>
       
    1. Why is it 25 ns initially?
    In the code:
@@ -475,6 +487,8 @@ In short:
    refpd ≈ 283 ns.
    period = refpd / 8 ≈ 35.4 ns.
    So, after the first REF cycle, the VCO clock slows down from 25 ns (40 MHz) to ~35 ns (≈28.3 MHz), which is exactly 8× the REF frequency.
+
+   ![](/images/increase_period.png)
    
    </details>
 
@@ -484,12 +498,15 @@ In short:
   <summary>Dataflow between modules</summary>
 
 These images show the data flow between the processor and the DAC. `OUT[9:0]` is translated into analog voltage values, which are seen in the `OUT` port of the DAC module. The crest and trough are shown respectively.
-//image here
-//image here
+
+![](/images/highpoint_sim.png)
+
+![](/images/lowpoint_sim.png)
 
 The DAC output is stepped because it converts digital values (discrete numbers) into voltage. Each digital value produces a fixed voltage level, so the output changes in small jumps instead of a smooth continuous curve.
 In short: digital → discrete steps → approximate analog, not truly continuous.
-//image here
+
+![](/images/steps_out.png)
 
 > To get the analog waveform, select OUT port under 'dac' module, double click to see it as a waveform. It shows real values.
 > Right click on the waveform, select Data Format, select Analog, select Step. For better viewing, right click on this waveform, select Insert Analog Height Extension.
