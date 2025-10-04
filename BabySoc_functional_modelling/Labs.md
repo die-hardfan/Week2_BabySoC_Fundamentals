@@ -5,7 +5,7 @@ This is an overview of the ports and functional description of VSDBabySoC.
 ## 1. avsddac.v 
 
 This is a behavioral Verilog model (not synthesizable) that implements a simple analog-style DAC (digital-to-analog converter) in simulation using real (floating-point) arithmetic. It converts the 10-bit input D into a real voltage OUT somewhere between VREFL and VREFH. 
-```text
+```
    output      OUT;
    input [9:0] D;
    input       VREFH;
@@ -16,7 +16,7 @@ The module converts the 10 bit `D` to an appropriate voltage value between `VREF
 <details>
   <summary>Detailed Explanation</summary>
 
-```bash
+```
 module avsddac (
    OUT,
    D,
@@ -127,7 +127,7 @@ Important: This is behavioral code for simulation, not synthesizable RTL. The #(
 <details>
   <summary> Detailed Explanation </summary>
    
-```
+```text
 //Real Variables
 real period, lastedge, refpd;
 ```
@@ -137,7 +137,7 @@ real period, lastedge, refpd;
 
 > Real type is used for simulation with time delays in #(...) constructs. Cannot be synthesized to hardware—this is behavioral/testbench code, not RTL for an FPGA/ASIC.
 
-```
+```text
 //Initial Block
 initial begin
    lastedge = 0.0; //Initialize the last REF edge timestamp
@@ -146,7 +146,7 @@ initial begin
 end
 ```
 This sets the starting conditions of the PLL simulation.
-```
+```text
 //Clock Toggling (VCO Behavior)
 always @(CLK or ENb_VCO) begin
    if (ENb_VCO == 1'b1) begin    //VCO enabled, clock toggles at period/2 delay
@@ -164,7 +164,7 @@ end
 This always block toggles the CLK output to simulate the VCO.
 Essentially, this simulates a free-running oscillator controlled by ENb_VCO and the current period.
 
-```
+```text
 //Reference Clock Edge Processing
 always @(posedge REF) begin   //Triggered on each rising edge of REF
    if (lastedge > 0.0) begin   //if yes, Skip the first edge because there’s no previous timestamp yet
@@ -228,7 +228,7 @@ module vsdbabysoc (
 <details>
   <summary> Detailed Explanation </summary>
 
-```bash
+```text
    wire CLK;
    wire [9:0] RV_TO_DAC;
 
@@ -290,7 +290,7 @@ The testbench module doesn't have any ports and is responsible for stimulus gene
 <details>
   <summary> Detailed Explanation </summary>
 
-```bash
+```text
 `timescale 1ns / 1ps
 `ifdef PRE_SYNTH_SIM
    `include "vsdbabysoc.v"
@@ -375,16 +375,16 @@ Notable points: Vrefhigh = 3.3V, also, the reference clock has a period of 200ns
 
 All this is being done on an Ubuntu terminal.
 
-```bash
+```text
 sudo apt update
 sudo apt-get install python3 python3-pip //to install python
 ```
 Python is now installed. To install `sandpiper` : 
-```bash
+```text
 pip3 install --user pyyaml click sandpiper-saas //this didn't work on my system, but it maybe used
 ```
 OR 
-```bash
+```text
 sudo apt install pipx //install pipx
 pipx install sandpiper-saas
 pipx ensurepath 
@@ -404,7 +404,7 @@ This ensures that pipx’s binary installation directory is added to your system
 </details>
 
 The SandPiper code generator helps you write Verilog or SystemVerilog code more productively from TL-Verilog. Most open-source projects use SandPiper SaaS, which provides a command-line interface to run SandPiper in the cloud.
-```bash
+```text
 sanpiper-saas -i my.tlv -o my.sv //command for conversion
 ```
 git, iVerilog, and GTKwave have been installed as part of earlier tasks.
@@ -414,11 +414,11 @@ git, iVerilog, and GTKwave have been installed as part of earlier tasks.
 ## Simulation 
 
 1. Git clone the project files from [here](https://github.com/manili/VSDBabySoC).
-```bash
+```text
 git clone https://github.com/manili/VSDBabySoC week2_files
 ```
 2. Translation of rvmyth.tlv into .v files.
-```bash
+```text
 sandpiper-saas -i rvmyth.tlv -o rvmyth.v
 ```
 This generates two files, `rvmyth.v` and `rvmyth_gen.v`. Both of them are necessary for proper simulation. 
@@ -428,7 +428,7 @@ Also, all lines with `line in rvmyth.v file must be commented out (it leads to u
   <summary>Why error?</summary>
 
 Lines like:
-```
+```text
 `line 254 "rvmyth.tlv" 2
 ```
 are TL-Verilog “line directives” used for debugging/error reporting.
@@ -436,7 +436,7 @@ Icarus Verilog does not understand them unless you explicitly enable SystemVeril
 </details>
 
 3. Simulate the files.
-```bash
+```text
 iverilog -g2012 -o ~/week2_files/output/pre_synth_sim/pre_synth_sim.out -DPRE_SYNTH_SIM -I ~/week2_files/src/include -I ~/week2_files/src/module ~/week2_files/src/module/testbench.v //simulation
 cd output/pre_synth_sim //navigate to the output directory
 ./pre_synth_sim.out //execution of the .out file
