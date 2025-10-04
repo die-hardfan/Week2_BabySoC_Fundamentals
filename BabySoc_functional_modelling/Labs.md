@@ -126,90 +126,59 @@ Important: This is behavioral code for simulation, not synthesizable RTL. The #(
 
 <details>
   <summary> Detailed Explanation </summary>
-
-Real Variables
+   
+```
+//Real Variables
 real period, lastedge, refpd;
+```
+`period`: The current period of the output CLK in nanoseconds. Used for timing delays.
+`lastedge`: Stores the time of the last rising edge of REF.
+`refpd`: The reference clock period (time between two REF rising edges).
 
+> Real type is used for simulation with time delays in #(...) constructs. Cannot be synthesized to hardware—this is behavioral/testbench code, not RTL for an FPGA/ASIC.
 
-period: The current period of the output CLK in nanoseconds. Used for timing delays.
-
-lastedge: Stores the time of the last rising edge of REF.
-
-refpd: The reference clock period (time between two REF rising edges).
-
-Note: real type is used for simulation with time delays in #(...) constructs. Cannot be synthesized to hardware—this is behavioral/testbench code, not RTL for an FPGA/ASIC.
-
-Initial Block
+```
+//Initial Block
 initial begin
-   lastedge = 0.0;
-   period = 25.0; // 25ns period = 40MHz
-   CLK <= 0;
+   lastedge = 0.0; //Initialize the last REF edge timestamp
+   period = 25.0; // 25ns period = 40MHz --> Default VCO period is 25ns, i.e., 40 MHz frequency.
+   CLK <= 0; //Initialize the output clock to 0.
 end
-
-
-lastedge = 0.0; → Initialize the last REF edge timestamp.
-
-period = 25.0 → Default VCO period is 25ns, i.e., 40 MHz frequency.
-
-CLK <= 0; → Initialize the output clock to 0.
-
+```
 This sets the starting conditions of the PLL simulation.
-
-Clock Toggling (VCO Behavior)
+```
+//Clock Toggling (VCO Behavior)
 always @(CLK or ENb_VCO) begin
-   if (ENb_VCO == 1'b1) begin
-      #(period / 2.0);
-      CLK <= (CLK === 1'b0);
+   if (ENb_VCO == 1'b1) begin    //VCO enabled, clock toggles at period/2 delay
+      #(period / 2.0);    //Wait half a period before toggling the clock
+      CLK <= (CLK === 1'b0);    //If CLK was 0, set to 1; else set to 0 (toggles)
    end
-   else if (ENb_VCO == 1'b0) begin
+   else if (ENb_VCO == 1'b0) begin   //VCO disabled, hold CLK at 0
       CLK <= 1'b0;
    end 
-   else begin
+   else begin   //If ENb_VCO is unknown (x), CLK is set to unknown 1'bx
       CLK <= 1'bx;
    end
 end
-
-
+```
 This always block toggles the CLK output to simulate the VCO.
-
-ENb_VCO == 1 → VCO enabled, clock toggles at period/2 delay.
-
-#(period / 2.0); → Wait half a period before toggling the clock.
-
-CLK <= (CLK === 1'b0); → If CLK was 0, set to 1; else set to 0 (toggles).
-
-ENb_VCO == 0 → VCO disabled, hold CLK at 0.
-
-else → If ENb_VCO is unknown (x), CLK is set to unknown 1'bx.
-
 Essentially, this simulates a free-running oscillator controlled by ENb_VCO and the current period.
 
-Reference Clock Edge Processing
-always @(posedge REF) begin
-   if (lastedge > 0.0) begin
-      refpd = $realtime - lastedge;
+```
+//Reference Clock Edge Processing
+always @(posedge REF) begin   //Triggered on each rising edge of REF
+   if (lastedge > 0.0) begin   //if yes, Skip the first edge because there’s no previous timestamp yet
+      refpd = $realtime - lastedge; // Calculate the period of the reference clock. $realtime gives the simulation time in ns
       // Adjust period towards 1/8 the reference period
-      //period = (0.99 * period) + (0.01 * (refpd / 8.0));
-      period =  (refpd / 8.0) ;
+      //period = (0.99 * period) + (0.01 * (refpd / 8.0));   
+      period =  (refpd / 8.0) ;   ////Sets the VCO period to 1/8th of the reference period, i.e., this PLL multiplies the reference frequency by 8
    end
-   lastedge = $realtime;
+   lastedge = $realtime;   //Update timestamp for next edge calculation
 end
-
+```
 
 This block adjusts the VCO period based on the reference clock, simulating phase-locking behavior.
-
-@(posedge REF) → Triggered on each rising edge of REF.
-
-if (lastedge > 0.0) → Skip the first edge because there’s no previous timestamp yet.
-
-refpd = $realtime - lastedge; → Calculate the period of the reference clock. $realtime gives the simulation time in ns.
-
-period = (refpd / 8.0); → Sets the VCO period to 1/8th of the reference period, i.e., this PLL multiplies the reference frequency by 8.
-
-The commented line //period = (0.99 * period) + (0.01 * (refpd / 8.0)); would have been a smoother approach (exponential averaging) to prevent abrupt frequency jumps.
-
-lastedge = $realtime; → Update timestamp for next edge calculation.
-
+The commented line `//period = (0.99 * period) + (0.01 * (refpd / 8.0));` would have been a smoother approach (exponential averaging) to prevent abrupt frequency jumps.
 This is the core PLL “locking” mechanism: it adjusts the output clock period to match a multiple of the reference clock.
 
 </details>
@@ -228,11 +197,6 @@ This is the core PLL “locking” mechanism: it adjusts the output clock period
 `OUT`: reflects the contents of register `r17` within the register file. 
 `CLK`: input clock signal required for functioning of the core
 `reset`: active high reset that pulls relevant values (like PC, rd_en) to 0. 
-
-<details>
-  <summary> Detailed Explanation </summary>
-  
-</details>
 
 ---
 
@@ -263,7 +227,59 @@ module vsdbabysoc (
 
 <details>
   <summary> Detailed Explanation </summary>
-  
+
+```bash
+   wire CLK;
+   wire [9:0] RV_TO_DAC;
+
+   rvmyth core (
+      .OUT(RV_TO_DAC),
+      .CLK(CLK),
+      .reset(reset)
+   );
+
+   avsdpll pll (
+      .CLK(CLK),
+      .VCO_IN(VCO_IN),
+      .ENb_CP(ENb_CP),
+      .ENb_VCO(ENb_VCO),
+      .REF(REF)
+   );
+
+   avsddac dac (
+      .OUT(OUT),
+      .D(RV_TO_DAC),
+      .VREFL(VREFL),
+      .VREFH(VREFH)
+   );
+   
+endmodule
+```
+The interconnections between modules are clearly seen. 
+
+1. RV_TO_DAC → DAC
+RV_TO_DAC is the digital output of the rvmyth core.
+It goes directly into the DAC (avsddac) as input D.
+Purpose: converts the digital computation result into analog voltage OUT.
+
+2. CLK → Core
+CLK is the output of the PLL (avsdpll).
+It is fed into the rvmyth core to clock the digital computation.
+Purpose: ensures the digital core runs synchronized with the PLL.
+
+3. PLL Inputs
+VCO_IN – the input signal for the PLL’s voltage-controlled oscillator.
+ENb_CP / ENb_VCO – enable signals for the PLL’s internal blocks (like charge pump and VCO).
+REF – reference clock for the PLL to lock to.
+Purpose: The PLL generates a stable clock CLK based on VCO_IN and REF, which drives the digital core.
+
+4. DAC Reference Voltage
+The DAC needs a reference voltage to convert digital values to analog output.
+Here, VREFH sets the full-scale voltage, while VREFL is commented out (defaults to 0 in avsddac).
+
+5. System Reset
+Connected only to the digital core (rvmyth) to reset its internal state.
+PLL and DAC do not have a reset in this configuration.
 </details>
 
 ---
@@ -273,7 +289,76 @@ The testbench module doesn't have any ports and is responsible for stimulus gene
 
 <details>
   <summary> Detailed Explanation </summary>
-  
+
+```bash
+`timescale 1ns / 1ps
+`ifdef PRE_SYNTH_SIM
+   `include "vsdbabysoc.v"
+   `include "avsddac.v"
+   `include "avsdpll.v"
+   `include "rvmyth.v"
+   `include "clk_gate.v"
+`elsif POST_SYNTH_SIM
+   `include "vsdbabysoc.synth.v"
+   `include "avsddac.v"
+   `include "avsdpll.v"
+   `include "primitives.v"
+   `include "sky130_fd_sc_hd.v"
+`endif
+
+module vsdbabysoc_tb;
+   reg       reset;
+   reg       VCO_IN;
+   reg       ENb_CP;
+   reg       ENb_VCO;
+   reg       REF;
+   reg  real VREFL;
+   reg  real VREFH;
+   wire real OUT;
+
+   vsdbabysoc uut (
+      .OUT(OUT),
+      .reset(reset),
+      .VCO_IN(VCO_IN),
+      .ENb_CP(ENb_CP),
+      .ENb_VCO(ENb_VCO),
+      .REF(REF),
+      // .VREFL(VREFL),
+      .VREFH(VREFH)
+   );
+
+   initial begin
+      reset = 0;
+      VREFL = 0.0;
+      VREFH = 3.3;
+      {REF, ENb_VCO} = 0;
+      VCO_IN = 1'b0 ;
+      
+      #20 reset = 1;
+      #100 reset = 0;
+   end
+   
+   initial begin
+`ifdef PRE_SYNTH_SIM
+      $dumpfile("pre_synth_sim.vcd");
+`elsif POST_SYNTH_SIM
+      $dumpfile("post_synth_sim.vcd");
+`endif
+      $dumpvars(0, vsdbabysoc_tb);
+   end
+ 
+   initial begin
+      repeat(600) begin
+         ENb_VCO = 1;
+         #100 REF = ~REF;
+         #(83.33/2) VCO_IN = ~VCO_IN;
+      end
+      $finish;
+   end
+   
+endmodule
+```
+Notable points: Vrefhigh = 3.3V, also, the reference clock has a period of 200ns. 
 </details>
 
 
