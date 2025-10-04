@@ -113,16 +113,6 @@ A **PLL** is a circuit that generates a stable output signal whose **frequency a
 > Used to **generate clocks**, **multiply/divide frequencies**, and **synchronize signals**.  
 > Works like a **self-correcting oscillator** that “locks on” to a reference.
 
-```
-module avsdpll (
-   output reg  CLK,        // Output clock of the PLL
-   input  wire VCO_IN,     // Input from VCO (not really used in this sim)
-   input  wire ENb_CP,     // Charge pump enable (not used here)
-   input  wire ENb_VCO,    // VCO enable (active-low)
-   input  wire REF         // Reference given as real value
-);
-```
-
 
 ### 3. DAC (Digital to Analog Converter)
 This is responsible for interfacing the BabySoC with other analog components if necessary. It takes the data stored in register `r17` (within the processor) and converts it into its analog value. This is like the peripheral for the SoC.
@@ -130,13 +120,6 @@ This is responsible for interfacing the BabySoC with other analog components if 
 **WORKING**
 
 The purpose of DAC is to convert digital data into desired analog form (voltage or current). This is done in various ways as given below. And the verilog models a 10-bit Voltage-Output DAC. 
-```
-   output      OUT;
-   input [9:0] D;
-   input       VREFH;
-   input       VREFL;
-```
-The module converts the 10 bit `D` to an appropriate voltage value between `VREFH` and `VREFL`. 
 
 ![dac](/images/dac.png)
 
